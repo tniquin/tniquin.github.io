@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Checklist Diário - Ano Inteiro</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #1e1e1e; color: #fff; margin: 20px; }
+  h1, h2 { color: #ffd700; }
+  button { margin: 5px; padding: 5px 10px; border-radius: 5px; border: none; cursor: pointer; }
+  ul { list-style: none; padding: 0; }
+  li {
+    background: #333; margin: 5px 0; padding: 10px; border-radius: 8px; cursor: pointer; transition: 0.2s;
+  }
+  li.checked { text-decoration: line-through; background: #2ecc71; }
+  .nav { margin-bottom: 20px; }
+  .progress-container { background: #555; border-radius: 10px; margin: 10px 0; height: 20px; }
+  .progress-bar { height: 100%; background: #2ecc71; border-radius: 10px; width: 0%; transition: 0.3s; }
+</style>
+</head>
+<body>
+
+<h1>Checklist Diário - Ano Inteiro</h1>
+
+<div class="nav">
+  <button id="prev">◀ Dia Anterior</button>
+  <span id="currentDate"></span>
+  <button id="next">Dia Seguinte ▶</button>
+</div>
+
+<h2>Progresso Diário</h2>
+<div class="progress-container">
+  <div id="dailyProgress" class="progress-bar"></div>
+</div>
+
+<h2>Progresso Semanal</h2>
+<div class="progress-container">
+  <div id="weeklyProgress" class="progress-bar"></div>
+</div>
+
+<div id="checklistContainer"></div>
+
+<script>
+const checklistItems = [
+  "Beber 1 copo de água ao acordar",
+  "Café da manhã equilibrado (pão/ovo + fruta)",
+  "Alongamento leve / respiração (2–3 min)",
+  "Caminhada ida e volta da escola (~6 quarteirões)",
+  "Alongamento rápido na volta (2–3 min)",
+  "Lanche saudável (fruta ou leite)",
+  "Basquete leve / dribles 20–60 min",
+  "Exercícios de peso do corpo (3x/semana)",
+  "Jantar equilibrado (arroz + feijão + salada + proteína)",
+  "Refletir e escrever 1 coisa boa que conseguiu hoje",
+  "Dormir entre 22h e 23h",
+  "Evitar celular/TV/luz forte 30 min antes",
+  "Alongamento ou respiração leve antes de dormir",
+  "Basquete: 3–4x/semana",
+  "Caminhada leve nos dias sem basquete: 20–40 min",
+  "Exercícios de peso do corpo: 3x/semana"
+];
+
+let currentDate = new Date();
+currentDate.setHours(0,0,0,0);
+
+const container = document.getElementById("checklistContainer");
+const currentDateSpan = document.getElementById("currentDate");
+const dailyProgressBar = document.getElementById("dailyProgress");
+const weeklyProgressBar = document.getElementById("weeklyProgress");
+
+function formatDate(date){
+  const diasSemana = ["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
+  const dia = date.getDate().toString().padStart(2,'0');
+  const mes = (date.getMonth()+1).toString().padStart(2,'0');
+  const ano = date.getFullYear();
+  const diaSemana = diasSemana[date.getDay()];
+  return `${diaSemana}, ${dia}/${mes}/${ano}`;
+}
+
+function loadChecklist(){
+  currentDateSpan.textContent = formatDate(currentDate);
+  container.innerHTML = "";
+  const storageKey = formatDate(currentDate);
+  let savedData = JSON.parse(localStorage.getItem(storageKey)) || {};
+  const ul = document.createElement("ul");
+  checklistItems.forEach(itemText => {
+    const li = document.createElement("li");
+    li.textContent = itemText;
+    if(savedData[itemText]) li.classList.add("checked");
+    li.addEventListener("click", () => {
+      li.classList.toggle("checked");
+      savedData[itemText] = li.classList.contains("checked");
+      localStorage.setItem(storageKey, JSON.stringify(savedData));
+      updateProgress();
+    });
+    ul.appendChild(li);
+  });
+  container.appendChild(ul);
+  updateProgress();
+}
+
+function updateProgress(){
+  // Progresso diário
+  const storageKey = formatDate(currentDate);
+  const savedData = JSON.parse(localStorage.getItem(storageKey)) || {};
+  const checkedCount = Object.values(savedData).filter(v => v).length;
+  const dailyPercent = (checkedCount / checklistItems.length) * 100;
+  dailyProgressBar.style.width = dailyPercent + "%";
+
+  // Progresso semanal
+  let weekSum = 0;
+  let weekCount = 0;
+  const dayOfWeek = currentDate.getDay(); // 0=domingo
+  for(let i=0; i<7; i++){
+    const d = new Date(currentDate);
+    d.setDate(currentDate.getDate() - dayOfWeek + i);
+    const key = formatDate(d);
+    const data = JSON.parse(localStorage.getItem(key)) || {};
+    weekSum += Object.values(data).filter(v => v).length / checklistItems.length;
+    weekCount++;
+  }
+  weeklyProgressBar.style.width = ((weekSum / weekCount) * 100) + "%";
+}
+
+document.getElementById("prev").addEventListener("click", () => {
+  currentDate.setDate(currentDate.getDate() - 1);
+  loadChecklist();
+});
+
+document.getElementById("next").addEventListener("click", () => {
+  currentDate.setDate(currentDate.getDate() + 1);
+  loadChecklist();
+});
+
+loadChecklist();
+</script>
+
+</body>
+</html>
